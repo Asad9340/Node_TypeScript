@@ -2,15 +2,8 @@ import { Request, Response } from 'express';
 import { userServices } from './user.service';
 
 const createUser = async (req: Request, res: Response) => {
-  const { name, email, age, phone, address } = req.body;
   try {
-    const result = await userServices.createUser(
-      name,
-      email,
-      age,
-      phone,
-      address
-    );
+    const result = await userServices.createUser(req.body);
     res.status(201).json({
       success: true,
       message: 'User created successfully',
@@ -69,7 +62,7 @@ const getSingleUser = async (req: Request, res: Response) => {
 const updateUser = async (req: Request, res: Response) => {
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { name, email, age, phone, address } = req.body;
+    const { name, email, age, phone, address ,role} = req.body;
     try {
       const result = await userServices.updateUser(
         id!,
@@ -77,7 +70,8 @@ const updateUser = async (req: Request, res: Response) => {
         email,
         age,
         phone,
-        address
+        address,
+        role
       );
       if (result.rows.length === 0) {
         res.status(404).json({

@@ -1,17 +1,14 @@
 import { pool } from '../../config/db';
+import bcrypt from 'bcryptjs';
 
-const createUser = async (
-  name: string,
-  email: string,
-  age: number,
-  phone: string,
-  address: string
-) => {
+const createUser = async (payload: Record<string, unknown>) => {
+  const { name, role, email, password, age, phone, address } = payload;
+  const hashedPassword = await bcrypt.hash(password as string, 10);
   const result = await pool.query(
     `
-      INSERT INTO users (name, email, age, phone, address) VALUES ($1, $2 , $3 , $4, $5) RETURNING *
+      INSERT INTO users (name,role, email,password, age, phone, address) VALUES ($1, $2 , $3 , $4, $5,$6,$7) RETURNING *
       `,
-    [name, email, age, phone, address]
+    [name, role, email, hashedPassword, age, phone, address]
   );
   return result;
 };
@@ -32,11 +29,12 @@ const updateUser = async (
   email: string,
   age: number,
   phone: string,
-  address: string
+  address: string,
+  role: string
 ) => {
   const result = await pool.query(
-    `UPDATE users SET name = $1 , email = $2, age= $3 , phone= $4, address=$5, updated_at = NOW() WHERE id = $6 RETURNING *`,
-    [name, email, age, phone, address, id]
+    `UPDATE users SET name = $1 , email = $2, age= $3 , phone= $4, address=$5, role=$6, updated_at = NOW() WHERE id = $6 RETURNING *`,
+    [name, email, age, phone, address, role, id]
   );
   return result;
 };
@@ -44,7 +42,7 @@ const updateUser = async (
 const deleteUser = async (id: string) => {
   const result = await pool.query('DELETE FROM users WHERE id = $1', [id]);
   return result;
-}
+};
 
 export const userServices = {
   createUser,
