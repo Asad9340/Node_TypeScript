@@ -6,6 +6,26 @@ import {
 } from '../../../generated/prisma/models';
 import { PostStatus } from '../../../generated/prisma/enums';
 
+const getPostById = async (postId: string) => {
+  const result = await prisma.$transaction(async tx => {
+    await tx.post.update({
+      where: { id: postId },
+      data: {
+        views: {
+          increment: 1,
+        },
+      },
+    });
+    const postData = await tx.post.findUniqueOrThrow({
+      where: {
+        id: postId,
+      },
+    });
+    return postData;
+  });
+  return result;
+};
+
 const createPost = async (
   title: string,
   content: string,
@@ -31,21 +51,20 @@ const getAllPosts = async ({
   isFeatured,
   status,
   authorId,
-  page,
-  limit,
-  sortBy,
-  sortOrder,
+  skip,
+  take,
+  orderBy,
 }: {
   search: string | undefined;
   tags: string[] | [];
   isFeatured: boolean | undefined;
   status: PostStatus | undefined;
   authorId: string | undefined;
-  page: number;
-  limit: number;
-  sortBy: string | undefined;
-  sortOrder: 'asc' | 'desc' | undefined;
+  skip: number;
+  take: number;
+  orderBy: any;
 }) => {
+  console.log(skip, take, orderBy);
   const andConditions: PostWhereInput[] = [];
   if (search) {
     andConditions.push({
@@ -96,16 +115,26 @@ const getAllPosts = async ({
     where: {
       AND: andConditions,
     },
-    skip: (page - 1) * limit,
-    take: limit,
-    orderBy: {
-      [sortBy || 'createdAt']: sortOrder || 'desc',
+    skip,
+    take,
+    orderBy,
+  });
+  const total = await prisma.post.count({
+    where: {
+      AND: andConditions,
     },
   });
-  return posts;
+  return {
+    total,
+    page: Math.ceil(skip / take) + 1,
+    limit: take,
+    totalPage: Math.ceil(total / take),
+    data: posts,
+  };
 };
 
 export const postService = {
+  getPostById,
   createPost,
   getAllPosts,
 };
