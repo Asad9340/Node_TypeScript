@@ -4,7 +4,7 @@ import {
   EnumPostStatusFilter,
   PostWhereInput,
 } from '../../../generated/prisma/models';
-import { PostStatus } from '../../../generated/prisma/enums';
+import { CommentStatus, PostStatus } from '../../../generated/prisma/enums';
 
 const getPostById = async (postId: string) => {
   const result = await prisma.$transaction(async tx => {
@@ -19,6 +19,42 @@ const getPostById = async (postId: string) => {
     const postData = await tx.post.findUniqueOrThrow({
       where: {
         id: postId,
+      },
+      include: {
+        comments: {
+          where: {
+            parentId: null,
+            status: CommentStatus.APPROVED,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          include: {
+            replies: {
+              where: {
+                status: CommentStatus.APPROVED,
+              },
+              orderBy: {
+                createdAt: 'asc',
+              },
+              include: {
+                replies: {
+                  where: {
+                    status: CommentStatus.APPROVED,
+                  },
+                  orderBy: {
+                    createdAt: 'asc',
+                  },
+                },
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
       },
     });
     return postData;
@@ -64,7 +100,6 @@ const getAllPosts = async ({
   take: number;
   orderBy: any;
 }) => {
-  console.log(skip, take, orderBy);
   const andConditions: PostWhereInput[] = [];
   if (search) {
     andConditions.push({
@@ -114,6 +149,11 @@ const getAllPosts = async ({
   const posts = await prisma.post.findMany({
     where: {
       AND: andConditions,
+    },
+    include: {
+      _count: {
+        select: { comments: true },
+      },
     },
     skip,
     take,
