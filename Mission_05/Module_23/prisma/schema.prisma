@@ -52,6 +52,7 @@ model Comment {
 enum CommentStatus {
   APPROVED
   REJECTED
+  DRAFT
 }
 
 model User {
