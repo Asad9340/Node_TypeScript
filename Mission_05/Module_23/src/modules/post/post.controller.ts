@@ -3,10 +3,11 @@ import { postService } from './post.service';
 import { boolean } from 'better-auth/*';
 import { PostStatus } from '../../../generated/prisma/enums';
 import paginationSortingHelper from '../../helper/paginationSrotingHelper';
+import { UserRole } from '../../middlewares/auth';
 
-const getPostById = async (re: Request, res: Response) => {
+const getPostById = async (req: Request, res: Response) => {
   try {
-    const { postId } = re.params;
+    const { postId } = req.params;
     const post = await postService.getPostById(postId!);
     res.status(200).json({
       success: true,
@@ -55,6 +56,48 @@ const createPost = async (req: Request, res: Response) => {
     });
   }
 };
+const updatePost = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+    const authorId = req.user?.id;
+    const isAdmin = req.user?.role === UserRole.ADMIN ? true : false;
+    const data = req.body;
+    const newPost = await postService.updatePost(
+      postId!,
+      authorId!,
+      isAdmin,
+      data
+    );
+    res.status(201).json({
+      success: true,
+      message: 'Post created successfully',
+      data: newPost,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+      error: (error as Error).message,
+    });
+  }
+};
+const deletePost = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+    const newPost = await postService.deletePost(postId!);
+    res.status(201).json({
+      success: true,
+      message: 'Post deleted successfully',
+      data: newPost,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: (error as Error).message || 'Internal Server Error',
+      error,
+    });
+  }
+};
 
 const getAllPosts = async (req: Request, res: Response) => {
   try {
@@ -94,8 +137,48 @@ const getAllPosts = async (req: Request, res: Response) => {
   }
 };
 
+const getLoginUserPost = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const result = await postService.getLoginUserPost(userId!);
+    console.log(result);
+    res.status(200).json({
+      success: true,
+      message: 'User retrieved successfully',
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: (error as Error).message || 'User retrieved failed',
+      error,
+    });
+  }
+};
+const getStats = async (req: Request, res: Response) => {
+  try {
+    const result = await postService.getStats();
+    res.status(200).json({
+      success: true,
+      message: 'Statistics retrieved successfully',
+      data: result,
+    });
+  } catch (e) {
+    const errorMessage =
+      e instanceof Error ? e.message : 'Stats fetched failed!';
+    res.status(400).json({
+      error: errorMessage,
+      details: e,
+    });
+  }
+};
+
 export const postController = {
   getPostById,
   createPost,
   getAllPosts,
+  getLoginUserPost,
+  updatePost,
+  deletePost,
+  getStats,
 };

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { commentService } from './comments.service';
+import { CommentStatus } from '../../../generated/prisma/enums';
 
 const getCommentById = async (req: Request, res: Response) => {
   try {
@@ -109,9 +110,10 @@ const moderateComment = async (req: Request, res: Response) => {
     if (!commentId) {
       throw new Error('Comment id is missing');
     }
-    if (!status) {
-      throw new Error('Please give status');
+    if (!status || !(status in CommentStatus)) {
+      throw new Error('Please give valid status');
     }
+
     const result = await commentService.moderateComment(status, commentId);
     res.status(200).json({
       success: true,
@@ -121,7 +123,7 @@ const moderateComment = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: (error as Error).message || 'Internal server error',
       error,
     });
   }
